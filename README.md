@@ -17,6 +17,8 @@ Tiny Go webserver that prints os information and HTTP request to output
 - `/health`: heath check
     - `GET`, `HEAD`, ...: returns a response with the status code defined by the `POST`
     - `POST`: changes the status code of the `GET` (`HEAD`, ...) response.
+- `/metrics`: metrics
+    - `GET`: returns prometheus metrics (including the total number of requests processed by whoami server).
 
 ### Flags
 

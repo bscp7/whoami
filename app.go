@@ -17,6 +17,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Units.
@@ -47,6 +50,14 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+var (
+	totalRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: "whoami",
+		Name:      "requests_total",
+		Help:      "The total number of requests processed by whoami server",
+	})
+)
+
 func main() {
 	flag.Parse()
 
@@ -56,6 +67,7 @@ func main() {
 	http.HandleFunc("/", whoamiHandler)
 	http.HandleFunc("/api", apiHandler)
 	http.HandleFunc("/health", healthHandler)
+	http.Handle("/metrics", promhttp.Handler())
 
 	fmt.Println("Starting up on port " + port)
 
@@ -66,12 +78,14 @@ func main() {
 }
 
 func benchHandler(w http.ResponseWriter, _ *http.Request) {
+	totalRequests.Inc()
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Content-Type", "text/plain")
 	_, _ = fmt.Fprint(w, "1")
 }
 
 func echoHandler(w http.ResponseWriter, r *http.Request) {
+	totalRequests.Inc()
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -101,6 +115,7 @@ func printBinary(s []byte) {
 }
 
 func dataHandler(w http.ResponseWriter, r *http.Request) {
+	totalRequests.Inc()
 	u, _ := url.Parse(r.URL.String())
 	queryParams := u.Query()
 
@@ -144,6 +159,7 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func whoamiHandler(w http.ResponseWriter, req *http.Request) {
+	totalRequests.Inc()
 	u, _ := url.Parse(req.URL.String())
 	wait := u.Query().Get("wait")
 	if len(wait) > 0 {
@@ -184,6 +200,7 @@ func whoamiHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func apiHandler(w http.ResponseWriter, req *http.Request) {
+	totalRequests.Inc()
 	hostname, _ := os.Hostname()
 
 	data := struct {
